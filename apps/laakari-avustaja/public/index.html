@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Kirjoitusavustaja</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>Kirjoitusavustaja</h1>
+      <span class="badge warn" id="proto-badge" title="Ei hyväksytty potilaskäyttöön">Prototyyppi – vain keksitty aineisto</span>
+    </div>
+    <div class="topbar-actions">
+      <span class="badge" id="model-badge" tabindex="0" title="Näytä, mitkä toiminnot ovat käytössä">Sääntöpohjainen tila – ei tekoälyä</span>
+      <button type="button" id="open-phrases" class="ghost">Fraasit <kbd>Alt+F</kbd></button>
+      <button type="button" id="open-settings" class="ghost">Asetukset</button>
+      <button type="button" id="open-help" class="ghost" aria-label="Pikanäppäimet">?</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="col col-input" aria-labelledby="input-h">
+      <h2 id="input-h" class="sr-only">Syöte</h2>
+      <label for="input" class="field-label">Muistiinpanot, lähdeteksti ja pyyntö</label>
+      <textarea id="input" spellcheck="true" autocomplete="off" autocapitalize="sentences"
+        placeholder="Esim. ”45 v, oik olkapää 3 vk, ei traumaa, yöllä kipua, Burana auttaa vähän. Tee merkintä.”"></textarea>
+      <p class="privacy-note">Teksti käsitellään vain tässä selaimessa. Sitä ei tallenneta eikä lähetetä minnekään.</p>
+
+      <div class="task-row" aria-live="polite">
+        <div id="task-hint" class="task-hint">Kirjoita tai liitä teksti – ehdotan tehtävää.</div>
+        <div id="task-chips" class="chips" role="radiogroup" aria-label="Tehtävä"></div>
+      </div>
+      <div id="purpose-row" class="purpose-row" hidden>
+        <label for="purpose">Lausunnon käyttötarkoitus</label>
+        <select id="purpose"></select>
+      </div>
+      <div id="needs" class="needs" aria-live="polite"></div>
+      <div class="actions">
+        <button type="button" id="generate" class="primary">Muodosta luonnos <kbd>Ctrl+Enter</kbd></button>
+        <button type="button" id="clear" class="ghost">Tyhjennä <kbd>Alt+Del</kbd></button>
+      </div>
+    </section>
+
+    <section class="col col-draft" aria-labelledby="draft-h">
+      <div class="draft-head">
+        <h2 id="draft-h">Luonnos</h2>
+        <div class="draft-tools">
+          <button type="button" id="undo-version" disabled>Palauta edellinen versio <kbd>Ctrl+Alt+Z</kbd></button>
+        </div>
+      </div>
+      <div id="draft-info" class="draft-info"></div>
+      <div id="draft" class="draft" aria-live="polite">
+        <p class="empty">Luonnos näkyy tässä muokattavana tekstinä.</p>
+      </div>
+      <div class="approve-bar">
+        <label class="approve"><input type="checkbox" id="approve" disabled> Olen tarkistanut ja hyväksyn näkyvän luonnoksen</label>
+        <button type="button" id="copy-all" class="primary" disabled>Kopioi koko teksti <kbd>Ctrl+Shift+C</kbd></button>
+        <span id="copy-status" class="copy-status" role="status"></span>
+      </div>
+      <details class="suggestions" id="suggestions">
+        <summary>Kliiniset ehdotukset (erillään luonnoksesta)</summary>
+        <p id="suggestions-body">Ei käytössä: kielimallia ei ole määritetty. Sääntöpohjainen tila ei tee kliinisiä ehdotuksia.</p>
+      </details>
+    </section>
+
+    <aside class="col col-checks" aria-labelledby="checks-h">
+      <h2 id="checks-h">Tarkista nämä</h2>
+      <ul id="checks" class="checks"><li class="empty">Tarkistukset näkyvät luonnoksen muodostamisen jälkeen.</li></ul>
+      <div id="sources" class="sources"></div>
+    </aside>
+  </main>
+
+  <dialog id="phrases-dialog" aria-labelledby="phrases-h">
+    <form method="dialog" class="dialog-head">
+      <h2 id="phrases-h">Fraasikirjasto</h2>
+      <button value="close" class="ghost" aria-label="Sulje">✕</button>
+    </form>
+    <div class="phrase-tools">
+      <input type="search" id="phrase-search" placeholder="Hae fraaseja" aria-label="Hae fraaseja">
+      <select id="phrase-filter-purpose" aria-label="Käyttötarkoitus"></select>
+      <select id="phrase-filter-region" aria-label="Alue"></select>
+      <button type="button" id="phrase-new">Uusi fraasi</button>
+      <button type="button" id="phrase-export">Vie</button>
+      <label class="file-btn">Tuo<input type="file" id="phrase-import" accept="application/json,.json"></label>
+      <label class="small"><input type="checkbox" id="phrase-keep-verified"> Tuon omaa kirjastoani (säilytä vahvistukset)</label>
+    </div>
+    <div class="phrase-body">
+      <ul id="phrase-list" class="phrase-list"></ul>
+      <div id="phrase-detail" class="phrase-detail"><p class="empty">Valitse fraasi.</p></div>
+    </div>
+  </dialog>
+
+  <dialog id="settings-dialog" aria-labelledby="settings-h">
+    <form method="dialog" class="dialog-head">
+      <h2 id="settings-h">Asetukset</h2>
+      <button value="close" class="ghost" aria-label="Sulje">✕</button>
+    </form>
+    <h3>Potilaskertomuksen otsikot</h3>
+    <p class="small">Valitse käytettävät otsikot ja muokkaa nimiä. Järjestä nuolilla.</p>
+    <ul id="heading-list" class="heading-list"></ul>
+    <h3>Toimintatila</h3>
+    <ul id="capabilities" class="capabilities"></ul>
+    <p class="small">Kielimallia ei ole kytketty. Rajapinta on vaihdettava (core/model.js); ulkoisen palvelun käyttö vaatii erillisen tuotantokäytön arvion.</p>
+  </dialog>
+
+  <dialog id="help-dialog" aria-labelledby="help-h">
+    <form method="dialog" class="dialog-head">
+      <h2 id="help-h">Pikanäppäimet</h2>
+      <button value="close" class="ghost" aria-label="Sulje">✕</button>
+    </form>
+    <table class="keys">
+      <tr><td><kbd>Ctrl/⌘+Enter</kbd></td><td>Muodosta luonnos</td></tr>
+      <tr><td><kbd>Alt+1…9</kbd></td><td>Valitse tehtävä</td></tr>
+      <tr><td><kbd>Ctrl/⌘+Shift+C</kbd></td><td>Kopioi koko teksti (hyväksynnän jälkeen)</td></tr>
+      <tr><td><kbd>Ctrl/⌘+Alt+Z</kbd></td><td>Palauta edellinen versio</td></tr>
+      <tr><td><kbd>Alt+F</kbd></td><td>Fraasikirjasto</td></tr>
+      <tr><td><kbd>Alt+I</kbd></td><td>Siirry syötteeseen</td></tr>
+      <tr><td><kbd>Alt+Del</kbd></td><td>Tyhjennä syöte ja luonnos</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Sulje ikkuna</td></tr>
+    </table>
+  </dialog>
+</body>
+</html>
